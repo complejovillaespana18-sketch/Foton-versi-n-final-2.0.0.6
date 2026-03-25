@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>FOTON 2.0 · Enviar fotos</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', 'Poppins', sans-serif;
+      background: linear-gradient(145deg, #c5e9f0 0%, #e0f4fa 100%);
+      min-height: 100vh;
+    }
+
+    .butterfly-bg {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.25;
+      animation: float 20s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    @keyframes butterflyFly {
+      0% {
+        transform: translate(0, 0) rotate(0deg) scale(0.5);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--tx, 200px), var(--ty, -300px)) rotate(720deg) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .flying-butterfly {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      font-size: 2rem;
+      animation: butterflyFly 1.2s ease-out forwards;
+      filter: drop-shadow(0 0 8px #7fc1d4);
+    }
+
+    .main-interface {
+      min-height: 100vh;
+      background: rgba(191, 224, 235, 0.3);
+      padding: 20px 16px 100px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .interface-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .interface-header h2 {
+      font-size: 1.5rem;
+      color: #4f8e9e;
+    }
+
+    .interface-header p {
+      font-size: 0.7rem;
+      color: #7aafbe;
+    }
+
+    .btn-camara-principal {
+      background: linear-gradient(135deg, #8fcbdc, #6eb6c9);
+      border: none;
+      width: 100%;
+      padding: 22px;
+      border-radius: 70px;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin: 15px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 8px 20px rgba(79, 142, 158, 0.3);
+      transition: transform 0.1s;
+    }
+
+    .btn-camara-principal:active { transform: scale(0.98); }
+
+    .btn-selfie-opcional {
+      background: rgba(255,255,255,0.7);
+      border: 2px solid #8fcbdc;
+      padding: 10px 20px;
+      border-radius: 50px;
+      color: #5faec2;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+      transition: all 0.2s;
+    }
+
+    .btn-selfie-opcional:active { transform: scale(0.96); }
+
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin: 15px 0;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #5faec2;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: #7aafbe;
+    }
+
+    /* Carrusel de fotos recientes */
+    .carretel-section {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(15px);
+      border-radius: 40px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .carretel-section h3 {
+      color: #5faec2;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .carretel-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding: 8px 4px;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .carretel-scroll::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .carretel-item {
+      flex: 0 0 70px;
+      height: 70px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #e0f0f5;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .carretel-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .carretel-empty {
+      color: #7aafbe;
+      font-size: 0.7rem;
+      text-align: center;
+      padding: 15px;
+    }
+
+    .notas-section {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(15px);
+      border-radius: 40px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .notas-section h3 {
+      color: #5faec2;
+      margin-bottom: 15px;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #cae3ec;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      border-color: #8fcbdc;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(143, 203, 220, 0.2);
+    }
+
+    .foto-preview {
+      width: 100%;
+      height: 120px;
+      background: rgba(202, 227, 236, 0.5);
+      border-radius: 25px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px dashed #8fcbdc;
+    }
+
+    .foto-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .btn-foto, .btn-enviar {
+      width: 100%;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: transform 0.1s;
+    }
+
+    .btn-foto:active, .btn-enviar:active { transform: scale(0.97); }
+    .btn-foto { background: #cae3ec; color: #5faec2; }
+    .btn-enviar { background: linear-gradient(135deg, #8fcbdc, #6eb6c9); color: white; }
+
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(95, 174, 194, 0.95);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      z-index: 3000;
+      animation: fadeOut 2.5s forwards;
+      font-weight: 500;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; transform: translateX(-50%) scale(1); }
+      70% { opacity: 1; transform: translateX(-50%) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) scale(0.9); visibility: hidden; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div id="butterfliesBg"></div>
+
+  <div class="main-interface">
+    <div class="interface-header">
+      <h2>🦋 FOTON 2.0 🦋</h2>
+      <p>Toma una foto · Se guardará en la nube mágica</p>
+    </div>
+
+    <button id="openCameraBtn" class="btn-camara-principal">
+      <i class="fas fa-camera"></i> 📸 Tomar foto
+    </button>
+
+    <div style="text-align: center; margin-bottom: 10px;">
+      <button id="openSelfieBtn" class="btn-selfie-opcional">
+        <i class="fas fa-smile"></i> Usar cámara selfie
+      </button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-number" id="enviadasCount">0</div><div class="stat-label">Fotos enviadas</div></div>
+      <div class="stat-card"><div class="stat-number" id="estadoConexion">🔄</div><div class="stat-label">Estado</div></div>
+    </div>
+
+    <!-- CARRETEL DE FOTOS RECIENTES -->
+    <div class="carretel-section">
+      <h3><i class="fas fa-images"></i> Últimas fotos</h3>
+      <div id="carretelContainer" class="carretel-scroll">
+        <div class="carretel-empty">✨ Las fotos aparecerán aquí ✨</div>
+      </div>
+    </div>
+
+    <div class="notas-section">
+      <h3><i class="fas fa-heart"></i> Deja tu mensaje especial</h3>
+      <div class="form-group"><input type="text" id="noteName" placeholder="Tu nombre ✨" autocomplete="off"></div>
+      <div class="form-group"><textarea id="noteMessage" rows="3" placeholder="Escribe aquí tu mensaje... 💌"></textarea></div>
+      <div class="foto-preview" id="notePhotoPreview">
+        <span style="color:#7aafbe"><i class="fas fa-camera"></i> Toma una foto para tu nota</span>
+      </div>
+      <button id="takePhotoNoteBtn" class="btn-foto"><i class="fas fa-camera"></i> Tomar foto para nota</button>
+      <button id="submitNoteBtn" class="btn-enviar"><i class="fas fa-paper-plane"></i> Enviar nota con foto</button>
+    </div>
+  </div>
+
+  <script>
+    // ========== CONFIGURACIÓN ==========
+    const CLOUDINARY_CLOUD_NAME = "dfju7prsf";
+    const CLOUDINARY_UPLOAD_PRESET = "foton_preset";
+    const JSONBIN_BIN_ID = "69c32fd6aa77b81da917906c";
+    // ==================================
+    
+    let pendingPhoto = null;
+    let enviadas = 0;
+    let fotosRecientes = []; // Guardar hasta 10 fotos recientes
+    
+    // Mariposas de fondo
+    (function createBackgroundButterflies() {
+      const container = document.getElementById('butterfliesBg');
+      for (let i = 0; i < 12; i++) {
+        const b = document.createElement('div');
+        b.className = 'butterfly-bg';
+        b.innerHTML = '🦋';
+        b.style.left = Math.random() * 100 + '%';
+        b.style.top = Math.random() * 100 + '%';
+        b.style.fontSize = (Math.random() * 20 + 15) + 'px';
+        b.style.animationDelay = Math.random() * 15 + 's';
+        b.style.animationDuration = (Math.random() * 15 + 10) + 's';
+        container.appendChild(b);
+      }
+    })();
+    
+    function crearEfectoMariposas() {
+      for (let i = 0; i < 25; i++) {
+        const mariposa = document.createElement('div');
+        mariposa.className = 'flying-butterfly';
+        mariposa.innerHTML = '🦋';
+        mariposa.style.color = ['#7fc1d4', '#5faec2', '#9fd3e0', '#b8e6f0'][Math.floor(Math.random() * 4)];
+        const startX = window.innerWidth / 2 + (Math.random() - 0.5) * 300;
+        const startY = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+        mariposa.style.left = startX + 'px';
+        mariposa.style.top = startY + 'px';
+        const tx = (Math.random() - 0.5) * 500 + (Math.random() > 0.5 ? 200 : -200);
+        const ty = (Math.random() - 0.5) * 400 - 250;
+        mariposa.style.setProperty('--tx', tx + 'px');
+        mariposa.style.setProperty('--ty', ty + 'px');
+        mariposa.style.fontSize = (Math.random() * 24 + 18) + 'px';
+        document.body.appendChild(mariposa);
+        setTimeout(() => mariposa.remove(), 1200);
+      }
+    }
+    
+    function showToast(msg, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = msg;
+      if (isError) toast.style.background = 'rgba(200,100,100,0.95)';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+    
+    // Actualizar carretel visualmente
+    function actualizarCarretel() {
+      const container = document.getElementById('carretelContainer');
+      if (!container) return;
+      
+      if (fotosRecientes.length === 0) {
+        container.innerHTML = '<div class="carretel-empty">✨ Las fotos aparecerán aquí ✨</div>';
+        return;
+      }
+      
+      let html = '';
+      for (let i = 0; i < fotosRecientes.length; i++) {
+        html += `
+          <div class="carretel-item">
+            <img src="${fotosRecientes[i]}" loading="lazy" alt="foto reciente">
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+    
+    // Agregar foto al carretel (máximo 10)
+    function agregarAlCarretel(imagenUrl) {
+      fotosRecientes.unshift(imagenUrl);
+      if (fotosRecientes.length > 10) fotosRecientes.pop();
+      actualizarCarretel();
+    }
+    
+    // Subir imagen a Cloudinary
+    async function subirACloudinary(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Cloudinary error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.secure_url;
+    }
+    
+    // Guardar en JSONBin
+    async function guardarEnJSONBin(recuerdo) {
+      const getResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`);
+      const data = await getResponse.json();
+      let recuerdos = data.record.recuerdos || [];
+      
+      recuerdos.unshift(recuerdo);
+      
+      const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recuerdos })
+      });
+      
+      if (!updateResponse.ok) throw new Error(`JSONBin error: ${updateResponse.status}`);
+      return true;
+    }
+    
+    // Subir foto completa
+    async function subirFoto(file, nombre, mensaje, tipo = 'photo') {
+      try {
+        document.getElementById('estadoConexion').innerHTML = '⏳';
+        showToast("🦋 Subiendo foto...");
+        
+        const imagenUrl = await subirACloudinary(file);
+        
+        // Agregar al carretel visual inmediatamente
+        agregarAlCarretel(imagenUrl);
+        
+        const recuerdo = {
+          id: Date.now(),
+          tipo: tipo,
+          imagenUrl: imagenUrl,
+          nombre: nombre || '',
+          mensaje: mensaje || '',
+          timestamp: Date.now(),
+          fechaLegible: new Date().toLocaleString()
+        };
+        
+        await guardarEnJSONBin(recuerdo);
+        
+        enviadas++;
+        document.getElementById('enviadasCount').textContent = enviadas;
+        document.getElementById('estadoConexion').innerHTML = '✓';
+        
+        showToast(`✨ ¡${tipo === 'note' ? 'Nota' : 'Foto'} enviada con éxito! ✨`);
+        crearEfectoMariposas();
+        
+        setTimeout(() => {
+          document.getElementById('estadoConexion').innerHTML = '🔄';
+        }, 2000);
+        
+        return true;
+      } catch (error) {
+        console.error('❌ Error:', error);
+        document.getElementById('estadoConexion').innerHTML = '❌';
+        showToast(`Error: ${error.message}`, true);
+        return false;
+      }
+    }
+    
+    // Abrir cámara
+    function abrirCamara(tipo = 'environment', paraNota = false) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = tipo;
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (paraNota) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            pendingPhoto = file;
+            document.getElementById('notePhotoPreview').innerHTML = `<img src="${event.target.result}" alt="foto nota">`;
+            showToast(tipo === 'user' ? "🤳 Selfie lista!" : "📸 Foto lista!");
+          };
+          reader.readAsDataURL(file);
+        } else {
+          await subirFoto(file, '', '', 'photo');
+        }
+        input.value = '';
+      };
+      input.click();
+    }
+    
+    // Enviar nota
+    async function enviarNota() {
+      const nombre = document.getElementById('noteName').value.trim();
+      const mensaje = document.getElementById('noteMessage').value.trim();
+      
+      if (!nombre) { showToast("✨ Escribe tu nombre", true); return; }
+      if (!mensaje) { showToast("💌 Escribe tu mensaje", true); return; }
+      if (!pendingPhoto) { showToast("📸 Toma una foto para tu nota", true); return; }
+      
+      await subirFoto(pendingPhoto, nombre, mensaje, 'note');
+      
+      document.getElementById('noteName').value = '';
+      document.getElementById('noteMessage').value = '';
+      pendingPhoto = null;
+      document.getElementById('notePhotoPreview').innerHTML = '<span style="color:#7aafbe"><i class="fas fa-camera"></i> Toma una foto para tu nota</span>';
+    }
+    
+    // Cargar fotos recientes desde JSONBin al iniciar
+    async function cargarFotosRecientes() {
+      try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`);
+        const data = await response.json();
+        const recuerdos = data.record.recuerdos || [];
+        
+        // Filtrar solo los que tienen URL válida y mostrar últimos 10
+        const urlsValidas = recuerdos.filter(r => r.imagenUrl && r.imagenUrl !== 'undefined').map(r => r.imagenUrl);
+        fotosRecientes = urlsValidas.slice(0, 10);
+        actualizarCarretel();
+        
+        enviadas = urlsValidas.length;
+        document.getElementById('enviadasCount').textContent = enviadas;
+      } catch (error) {
+        console.log('Error al cargar recientes:', error);
+      }
+    }
+    
+    // Eventos
+    document.getElementById('openCameraBtn').addEventListener('click', () => abrirCamara('environment', false));
+    document.getElementById('openSelfieBtn').addEventListener('click', () => abrirCamara('user', false));
+    document.getElementById('takePhotoNoteBtn').addEventListener('click', () => abrirCamara('environment', true));
+    document.getElementById('submitNoteBtn').addEventListener('click', enviarNota);
+    
+    cargarFotosRecientes();
+  </script>
+</body>
+</html>
